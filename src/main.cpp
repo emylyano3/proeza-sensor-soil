@@ -17,6 +17,8 @@ const uint8_t ANALOG_SENSOR_PIN_1 = A0;
 const uint8_t LED_PIN             = D0;
 #endif
 
+int channelStateMapper(int original);
+
 Channel     _sensorChannel ("ss-1", "soil-sensor-1", ANALOG_SENSOR_PIN_1, INPUT, AIR_VALUE, true, 1000);
 
 ESPDomotic  _domoticModule;
@@ -49,18 +51,22 @@ void setup() {
   Serial.println();
   log(F("Starting module"));
   String ssid = "Sensor " + String(ESP.getChipId());
+  _sensorChannel.setStateMapper(channelStateMapper);
   _domoticModule.setPortalSSID(ssid.c_str());
   #ifndef ESP01
   _domoticModule.setFeedbackPin(LED_PIN); // PIN 0 can be used as output
   #endif
-  // _domoticModule.setMqttConnectionCallback(mqttConnectionCallback);
-  // _domoticModule.setMqttMessageCallback(receiveMqttMessage);
   _domoticModule.setConfigPortalTimeout(CONFIG_PORTAL_TIMEOUT);
   _domoticModule.setWifiConnectTimeout(WIFI_CONNECT_TIMEOUT);
   _domoticModule.setConfigFileSize(CONFIG_FILE_SIZE);
   _domoticModule.setModuleType("sensor");
   _domoticModule.addChannel(&_sensorChannel);
   _domoticModule.init();
+}
+
+int channelStateMapper(int original) {
+  uint32_t mapped = map(original, AIR_VALUE, WATER_VALUE, 0, 100);
+  return static_cast<int>(mapped);
 }
 
 void loop() {
