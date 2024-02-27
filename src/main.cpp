@@ -1,9 +1,6 @@
 #include <ESPDomotic.h>
 #include <string>
 
-void readSensor();
-bool publishSensorValue();
-
 #define WATER_VALUE 670 
 #define AIR_VALUE   1024
 #define LOOP_DELAY  6000
@@ -20,7 +17,9 @@ const uint8_t ANALOG_SENSOR_PIN_1 = A0;
 const uint8_t LED_PIN             = D0;
 #endif
 
-Channel _sensorChannel ("ss-1", "soil-sensor-1", ANALOG_SENSOR_PIN_1, 0x0, true); 
+Channel     _sensorChannel ("ss-1", "soil-sensor-1", ANALOG_SENSOR_PIN_1, INPUT, AIR_VALUE, true, 1000);
+
+ESPDomotic  _domoticModule;
 
 template <class T> void log (T text) {
   #ifdef LOGGING
@@ -38,7 +37,6 @@ template <class T, class U> void log (T key, U value) {
   #endif
 }
 
-ESPDomotic  _domoticModule;
 
 void setup() {
 #ifdef ESP01
@@ -67,23 +65,4 @@ void setup() {
 
 void loop() {
   _domoticModule.loop();
-  readSensor();
-  publishSensorValue();
-  delay(LOOP_DELAY);
-}
-
-void readSensor() {
-  _sensorChannel.state = analogRead(_sensorChannel.pin);
-  log(F("Sensor value"), _sensorChannel.state);
-}
-
-bool publishSensorValue() {
-    if (!isnan(_sensorChannel.state)) {
-      String topic = _domoticModule.getChannelTopic(&_sensorChannel, "feedback/state");
-      uint32_t mapped = map(_sensorChannel.state, AIR_VALUE, WATER_VALUE, 0, 100);
-      const char *payload = std::to_string(mapped).c_str();
-      _domoticModule.getMqttClient()->publish(topic.c_str(), payload);
-      return true;
-    }
-    return false;
 }
